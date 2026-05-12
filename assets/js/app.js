@@ -664,8 +664,25 @@ const App = (() => {
       );
       updateStatusTime();
     } catch (err) {
-      setStatus('error', `Hata: ${err.message}`);
-      console.error(err);
+      console.error('[loadData]', err);
+
+      // Cache-first fallback: render stale data so charts don't go blank
+      if (!cachedMain) {
+        const stale = DataCache.getStale(ticker, interval, range);
+        if (stale) {
+          const staleIdx = DataCache.getStale(compIndex, interval, range);
+          _renderAll(stale, staleIdx, compIndex);
+          reattachAlertLines();
+          FibTool.restore(ticker);
+        }
+      }
+
+      // User-friendly message + automatic retry in 10 s
+      const retryIn = 10;
+      setStatus('error', `Veri kaynakları meşgul — ${retryIn}sn içinde tekrar denenecek…`);
+      setTimeout(() => {
+        if (state.ticker === ticker) loadData();
+      }, retryIn * 1000);
     } finally {
       setOverlay(false);
     }

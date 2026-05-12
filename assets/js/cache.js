@@ -64,5 +64,18 @@ const DataCache = (() => {
            .forEach(({ k }) => localStorage.removeItem(k));
   }
 
-  return { get, set, ageMs };
+  /**
+   * Returns cached candles regardless of TTL — used as last-resort fallback
+   * when all network proxies fail, so charts don't go blank.
+   * Returns null only if no entry exists at all.
+   */
+  function getStale(ticker, interval, range) {
+    try {
+      const raw = localStorage.getItem(_key(ticker, interval, range));
+      if (!raw) return null;
+      return JSON.parse(raw).candles ?? null;
+    } catch { return null; }
+  }
+
+  return { get, set, ageMs, getStale };
 })();
