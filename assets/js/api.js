@@ -12,7 +12,7 @@ const BistAPI = (() => {
 
   // ── Paste your Cloudflare Worker URL here after deploying ──────────
   // Example: 'https://bist-proxy.yourname.workers.dev'
-  const DEDICATED_PROXY = '';
+  const DEDICATED_PROXY = 'https://bist-proxy.furkann-gursoy1.workers.dev';
   // ───────────────────────────────────────────────────────────────────
 
   const YF_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';

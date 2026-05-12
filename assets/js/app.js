@@ -289,9 +289,9 @@ const App = (() => {
           const list = Watchlist.load();
           for (const ticker of list) {
             await _fetchWatchlistTicker(ticker);
-            // Dedicated Worker: no rate-limit concern — use a short courtesy gap.
+            // Dedicated Worker: 10s between tickers — responsive but not aggressive.
             // Public proxies: 60s hard wait to stay under limits.
-            await delay(BistAPI.usingDedicated() ? 5_000 : 60_000);
+            await delay(BistAPI.usingDedicated() ? 10_000 : 60_000);
           }
         } else {
           await delay(60_000); // tab hidden — check again in 1 min
