@@ -289,11 +289,12 @@ const App = (() => {
           const list = Watchlist.load();
           for (const ticker of list) {
             await _fetchWatchlistTicker(ticker);
-            await delay(60_000); // 60s between every individual fetch
+            // Dedicated Worker: no rate-limit concern — use a short courtesy gap.
+            // Public proxies: 60s hard wait to stay under limits.
+            await delay(BistAPI.usingDedicated() ? 5_000 : 60_000);
           }
         } else {
-          // Tab hidden — wait a cycle before checking again
-          await delay(60_000);
+          await delay(60_000); // tab hidden — check again in 1 min
         }
       }
     } finally {
@@ -653,7 +654,7 @@ const App = (() => {
       const ageStr = age != null ? ` · önbellekten (${Math.round(age / 60000)}d önce)` : '';
       setStatus('loading', `${ticker} güncelleniyor…${ageStr}`);
     } else {
-      setOverlay(true);
+      setOverlay(true, 'Veri bekleniyor…');
       setStatus('loading', `${ticker} verisi alınıyor…`);
     }
 
@@ -693,7 +694,7 @@ const App = (() => {
     } catch (err) {
       console.error('[loadData]', err);
 
-      // Cache-first fallback: render stale data so charts don't go blank
+      // Stale-cache fallback: render whatever exists so charts never go blank
       if (!cachedMain) {
         const stale    = DataCache.getStale(ticker, interval, range);
         const staleIdx = DataCache.getStale(compIndex, interval, range);
@@ -704,13 +705,14 @@ const App = (() => {
         }
       }
 
-      // Only show the red error bar on a cold load with no data at all.
-      // Once charts are populated, use a quiet status-bar note instead.
       const retryIn = 10;
-      if (!hasData) {
-        setStatus('error', `Veri alınamadı — ${retryIn}sn içinde tekrar denenecek…`);
-      } else {
+      if (hasData) {
+        // Charts are populated — keep them visible, just note the hiccup quietly
         setStatus('ready', `⚠ Güncelleme başarısız — ${retryIn}sn içinde tekrar deneniyor`);
+      } else {
+        // True cold start with nothing to show — spinner overlay + neutral message
+        setOverlay(true, 'Veri bekleniyor…');
+        setStatus('loading', `Bağlantı kuruluyor… ${retryIn}sn içinde tekrar denenecek`);
       }
       setTimeout(() => {
         if (state.ticker === ticker) loadData();
@@ -950,7 +952,14 @@ const App = (() => {
   }
   function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
   function setStatus(type, msg) { document.getElementById('status-bar').className = `status-bar ${type}`; setText('status-text', msg); }
-  function setOverlay(v) { document.getElementById('loading-overlay').classList.toggle('visible', v); }
+  function setOverlay(v, label) {
+    const el = document.getElementById('loading-overlay');
+    el.classList.toggle('visible', v);
+    if (label) {
+      const txt = el.querySelector('span') || el.lastChild;
+      if (txt && txt.nodeType === Node.TEXT_NODE) txt.textContent = label;
+    }
+  }
   function updateStatusTime() { setText('status-time', new Date().toLocaleTimeString('tr-TR')); }
   function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
