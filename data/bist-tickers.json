@@ -1,0 +1,77 @@
+{
+  "groups": [
+    {
+      "label": "Bankacılık",
+      "tickers": [
+        { "symbol": "AKBNK.IS", "name": "Akbank" },
+        { "symbol": "GARAN.IS", "name": "Garanti BBVA" },
+        { "symbol": "ISCTR.IS", "name": "İş Bankası C" },
+        { "symbol": "YKBNK.IS", "name": "Yapı Kredi" },
+        { "symbol": "HALKB.IS", "name": "Halkbank" },
+        { "symbol": "VAKBN.IS", "name": "Vakıfbank" },
+        { "symbol": "TSKB.IS",  "name": "TSKB" }
+      ]
+    },
+    {
+      "label": "Havacılık & Ulaşım",
+      "tickers": [
+        { "symbol": "THYAO.IS", "name": "Türk Hava Yolları" },
+        { "symbol": "PGSUS.IS", "name": "Pegasus" },
+        { "symbol": "CLEBI.IS", "name": "Çelebi" }
+      ]
+    },
+    {
+      "label": "Enerji",
+      "tickers": [
+        { "symbol": "TUPRS.IS", "name": "Tüpraş" },
+        { "symbol": "AKSEN.IS", "name": "Aksen Enerji" },
+        { "symbol": "ZOREN.IS", "name": "Zorlu Enerji" },
+        { "symbol": "AYEN.IS",  "name": "Ayen Enerji" }
+      ]
+    },
+    {
+      "label": "Sanayi & Demir-Çelik",
+      "tickers": [
+        { "symbol": "EREGL.IS", "name": "Ereğli Demir Çelik" },
+        { "symbol": "KRDMD.IS", "name": "Kardemir D" },
+        { "symbol": "TTRAK.IS", "name": "Türk Traktör" },
+        { "symbol": "FROTO.IS", "name": "Ford Otosan" },
+        { "symbol": "TOASO.IS", "name": "Tofaş" },
+        { "symbol": "OTKAR.IS", "name": "Otokar" }
+      ]
+    },
+    {
+      "label": "Perakende & Gıda",
+      "tickers": [
+        { "symbol": "BIMAS.IS", "name": "BİM Mağazalar" },
+        { "symbol": "MGROS.IS", "name": "Migros" },
+        { "symbol": "SOKM.IS",  "name": "Şok Marketler" },
+        { "symbol": "ULKER.IS", "name": "Ülker Bisküvi" }
+      ]
+    },
+    {
+      "label": "Telekomünikasyon",
+      "tickers": [
+        { "symbol": "TCELL.IS", "name": "Turkcell" },
+        { "symbol": "TTKOM.IS", "name": "Türk Telekom" }
+      ]
+    },
+    {
+      "label": "Holding",
+      "tickers": [
+        { "symbol": "SAHOL.IS", "name": "Sabancı Holding" },
+        { "symbol": "KCHOL.IS", "name": "Koç Holding" },
+        { "symbol": "DOHOL.IS", "name": "Doğan Holding" },
+        { "symbol": "TKFEN.IS", "name": "Tekfen Holding" }
+      ]
+    },
+    {
+      "label": "Endeksler",
+      "tickers": [
+        { "symbol": "XU100.IS", "name": "BIST 100" },
+        { "symbol": "XU030.IS", "name": "BIST 30" },
+        { "symbol": "XBANK.IS", "name": "BIST Bankacılık" }
+      ]
+    }
+  ]
+}

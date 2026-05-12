@@ -1,0 +1,43 @@
+{
+  "name": "BIST Terminal — Teknik Analiz",
+  "short_name": "BIST Terminal",
+  "description": "Borsa Istanbul hisse senetleri için interaktif teknik analiz aracı. Fibonacci, RSI, MACD, Bollinger Bantları ve daha fazlası.",
+  "start_url": "./analysis.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape-primary",
+  "background_color": "#0d1117",
+  "theme_color": "#161b22",
+  "lang": "tr",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot.png",
+      "type": "image/png",
+      "sizes": "1280x800",
+      "form_factor": "wide",
+      "label": "Ana Analiz Paneli"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Analiz Aç",
+      "url": "./analysis.html",
+      "description": "BIST Terminal'i aç"
+    }
+  ]
+}

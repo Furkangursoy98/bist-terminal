@@ -5,6 +5,30 @@
 
 ---
 
+## BIST Terminal
+
+Borsa Istanbul için tarayıcı tabanlı, PWA destekli profesyonel teknik analiz terminali.
+
+**[→ Terminali Aç](https://saidsurucu.github.io/analysis.html)** — kurulum gerektirmez, tarayıcıda çalışır.
+
+### Özellikler
+
+- **4 senkron panel** — Mum/Hacim · RSI (14) · MACD (12,26,9) · Göreli Performans
+- **Overlay indikatörler** — SMA 20/50, EMA 100/200, Bollinger Bantları
+- **⊕ Çizgi** — tıklama ile destek/direnç çizgisi; fiyat geçince sesli + görsel uyarı
+- **Fibonacci** — iki tıkla 7 seviyeli geri çekilme, ticker başına kalıcı
+- **R/R Simülasyonu** — giriş/stop/hedef girişi, grafik üzerinde renkli bölgeler
+- **Karşılaştırma modu** — iki hisseyi normalise edilmiş bazda yan yana görüntüle
+- **Watchlist** — 60 sn canlı fiyat kutucukları, kalıcı liste
+- **PWA** — iOS/Android/masaüstüne kurulabilir, çevrimdışı çalışır
+- **Dışa Aktar** — 4 paneli birleştiren PNG indir
+
+### Kullanılan Teknolojiler
+
+[TradingView Lightweight Charts v4](https://github.com/tradingview/lightweight-charts) · Yahoo Finance API · Web Audio API · Service Worker · Vanilla JS
+
+---
+
 ## Sosyal Medya
 
 - [Instagram](https://instagram.com/yapayzekahocasi)

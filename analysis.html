@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIST Terminal</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="theme-color" content="#161b22" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="BIST Terminal" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="stylesheet" href="assets/css/analysis.css" />
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <header class="header">
+    <span class="header-logo">BIST<span>/terminal</span></span>
+    <div class="header-divider"></div>
+
+    <!-- Primary ticker -->
+    <div class="control-group">
+      <span class="control-label">hisse</span>
+      <select id="ticker-select"><option value="">— seçiniz —</option></select>
+    </div>
+    <div class="control-group">
+      <input id="ticker-input" type="text" placeholder="AKBNK ↵"
+             autocomplete="off" spellcheck="false" />
+    </div>
+
+    <!-- Comparison second ticker (hidden until comparison mode) -->
+    <div class="control-group" id="comp-control" style="display:none">
+      <span class="control-label" style="color:var(--accent-blue)">vs</span>
+      <select id="comp-ticker-select"><option value="">— seçiniz —</option></select>
+    </div>
+
+    <div class="header-divider"></div>
+
+    <div class="control-group">
+      <span class="control-label">periyot</span>
+      <select id="interval-select">
+        <option value="1d" selected>1G</option>
+        <option value="1wk">1H</option>
+        <option value="1mo">1A</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <span class="control-label">aralık</span>
+      <select id="range-select">
+        <option value="1mo">1A</option>
+        <option value="3mo">3A</option>
+        <option value="6mo">6A</option>
+        <option value="1y" selected>1Y</option>
+        <option value="2y">2Y</option>
+        <option value="5y">5Y</option>
+      </select>
+    </div>
+
+    <div class="header-spacer"></div>
+
+    <!-- BIST market status indicator -->
+    <div class="market-status" id="market-status" title="BIST Seans Durumu">
+      <span class="market-dot" id="market-dot"></span>
+      <span class="market-label" id="market-label">—</span>
+    </div>
+
+    <div class="header-divider"></div>
+
+    <!-- Mute toggle -->
+    <button class="header-btn" id="btn-mute" title="Ses uyarılarını aç/kapat">🔔</button>
+  </header>
+
+  <!-- ── App body ─────────────────────────────────────────── -->
+  <div class="app-body">
+
+    <!-- ── Sidebar ──────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+
+      <div class="sidebar-section-header">
+        <span class="sidebar-title">Watchlist</span>
+        <button class="sidebar-btn" id="btn-add-watchlist" title="Mevcut hisseyi ekle">+</button>
+      </div>
+      <ul class="watchlist" id="watchlist"></ul>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section-header">
+        <span class="sidebar-title">Çizgiler</span>
+        <button class="sidebar-btn" id="btn-add-line" title="Grafik üzerine çizgi ekle">⊕</button>
+      </div>
+      <ul class="alert-lines-list" id="alert-lines-list"></ul>
+      <button class="sidebar-clear-btn" id="btn-clear-lines">Tümünü Temizle</button>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section-header">
+        <span class="sidebar-title">Fibonacci</span>
+        <button class="sidebar-btn" id="btn-clear-fib" title="Fibonacci çizgilerini temizle">✕</button>
+      </div>
+      <div id="fib-status" class="fib-status">—</div>
+
+      <button class="sidebar-collapse-btn" id="btn-collapse-sidebar">◀</button>
+    </aside>
+
+    <!-- ── Main area ─────────────────────────────────────── -->
+    <div class="main-area">
+
+      <!-- Info bar -->
+      <div class="info-bar">
+        <div class="price-section">
+          <span id="ticker-label" class="ticker-label">—</span>
+          <span id="price-display">—</span>
+        </div>
+        <div class="summary-badges">
+          <div class="badge"><span class="badge-label">Son</span><span class="badge-value" id="badge-price">—</span></div>
+          <div class="badge"><span class="badge-label">Değ.%</span><span class="badge-value" id="badge-change">—</span></div>
+          <div class="badge" id="badge-rsi-wrap"><span class="badge-label">RSI 14</span><span class="badge-value" id="badge-rsi">—</span></div>
+          <div class="badge"><span class="badge-label">Hacim</span><span class="badge-value" id="badge-volume">—</span></div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="chart-legend">
+        <!-- Overlays -->
+        <label class="legend-item" title="SMA 20"><input type="checkbox" id="toggle-sma20" checked /><span class="legend-swatch" style="background:#e3b341"></span>SMA 20</label>
+        <label class="legend-item" title="SMA 50"><input type="checkbox" id="toggle-sma50" checked /><span class="legend-swatch" style="background:#58a6ff"></span>SMA 50</label>
+        <label class="legend-item" title="EMA 100"><input type="checkbox" id="toggle-ema100" /><span class="legend-swatch" style="background:#26c6da"></span>EMA 100</label>
+        <label class="legend-item" title="EMA 200 — uzun vadeli trend"><input type="checkbox" id="toggle-ema200" /><span class="legend-swatch" style="background:#ef5350"></span>EMA 200</label>
+        <label class="legend-item" title="Bollinger Bantları"><input type="checkbox" id="toggle-bb" /><span class="legend-swatch dashed" style="color:#bc8cff"></span>BB</label>
+
+        <div class="legend-sep"></div>
+
+        <!-- Panel labels -->
+        <span class="legend-item static"><span class="legend-swatch" style="background:#ab47bc"></span>RSI</span>
+        <span class="legend-item static"><span class="legend-swatch" style="background:#58a6ff"></span>MACD<span class="legend-swatch" style="background:#ff9800;margin-left:3px"></span>Sinyal</span>
+        <span class="legend-item static"><span class="legend-swatch" style="background:#26a69a"></span>RS</span>
+
+        <div class="legend-spacer"></div>
+
+        <!-- Tools -->
+        <button class="legend-btn" id="btn-alert-mode"  title="Destek/Direnç çizgisi ekle">⊕ Çizgi</button>
+        <button class="legend-btn" id="btn-fib-mode"    title="Fibonacci: 2 noktaya tıkla">Fib</button>
+        <button class="legend-btn" id="btn-rr-toggle"   title="Risk/Ödül simülasyonu">R/R</button>
+        <button class="legend-btn" id="btn-comp-mode"   title="İki hisseyi karşılaştır">⇌ Karşılaştır</button>
+        <button class="legend-btn" id="btn-mobile-mode" title="Mobil görünüm: yalnızca fiyat grafiği">📱</button>
+        <button class="legend-btn" id="btn-export"      title="PNG olarak indir">↓ Dışa Aktar</button>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-container" id="charts-container">
+
+        <!-- Main price chart -->
+        <div class="chart-panel" id="panel-main">
+          <span class="panel-label" id="main-panel-label">Fiyat / Hacim</span>
+          <div id="main-chart"></div>
+
+          <!-- R/R shaded zones (positioned by RRTool.js) -->
+          <div id="rr-profit-zone" class="rr-zone rr-profit"></div>
+          <div id="rr-loss-zone"   class="rr-zone rr-loss"></div>
+
+          <!-- R/R floating panel -->
+          <div id="rr-panel" class="rr-panel" style="display:none">
+            <div class="rr-panel-hdr">
+              <span>R/R SİMÜLASYONU</span>
+              <button id="rr-close" title="Kapat">✕</button>
+            </div>
+            <div class="rr-row">
+              <span class="rr-lbl">Yön</span>
+              <div class="rr-dir-group">
+                <button class="rr-dir-btn active" id="rr-dir-long">UZUN</button>
+                <button class="rr-dir-btn"        id="rr-dir-short">KISA</button>
+              </div>
+            </div>
+            <div class="rr-row">
+              <span class="rr-lbl">Giriş</span>
+              <input class="rr-input" type="number" id="rr-entry" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="rr-row">
+              <span class="rr-lbl">Stop</span>
+              <input class="rr-input" type="number" id="rr-sl" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="rr-row">
+              <span class="rr-lbl">Hedef</span>
+              <input class="rr-input" type="number" id="rr-tp" step="0.01" placeholder="0.00" />
+            </div>
+            <div id="rr-result" class="rr-result"></div>
+          </div>
+
+          <div id="loading-overlay" class="loading-overlay">
+            <div class="spinner"></div>veri alınıyor…
+          </div>
+        </div>
+
+        <div class="chart-panel" id="panel-rsi">
+          <span class="panel-label">RSI (14)</span>
+          <div id="rsi-chart"></div>
+        </div>
+
+        <div class="chart-panel" id="panel-macd">
+          <span class="panel-label">MACD (12, 26, 9)</span>
+          <div id="macd-chart"></div>
+        </div>
+
+        <div class="chart-panel" id="panel-rs">
+          <span class="panel-label" id="rs-panel-label">Göreli Performans / XU100 (baz=100)</span>
+          <div id="rs-chart"></div>
+        </div>
+
+      </div><!-- .charts-container -->
+    </div><!-- .main-area -->
+  </div><!-- .app-body -->
+
+  <!-- Status bar -->
+  <div id="status-bar" class="status-bar">
+    <span id="status-text">Hazır</span>
+    <span class="status-time" id="status-time"></span>
+  </div>
+
+  <!-- Scripts (load order matters) -->
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/indicators.js"></script>
+  <script src="assets/js/chart.js"></script>
+  <script src="assets/js/cache.js"></script>
+  <script src="assets/js/watchlist.js"></script>
+  <script src="assets/js/tools.js"></script>
+  <script src="assets/js/app.js"></script>
+
+</body>
+</html>
