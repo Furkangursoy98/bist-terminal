@@ -49,11 +49,8 @@ const App = (() => {
   const SECTOR_INDEX    = { 'Bankacılık': 'XBANK.IS' };
   const tickerSectorMap = new Map();
 
-  // ── Watchlist price cache & fetch-throttle ───────────────
-  const wlPriceCache  = new Map();
-  const wlLastFetch   = new Map();  // ticker → ms timestamp of last successful fetch
-  const WL_TTL_ACTIVE   = 60_000;  // 1 min for the active ticker
-  const WL_TTL_INACTIVE = 300_000; // 5 min for all other watchlist tickers
+  // ── Watchlist price cache ─────────────────────────────────
+  const wlPriceCache = new Map();
 
   // ── Chart-data presence flag ──────────────────────────────
   // Once charts have data, background failures stay silent.
@@ -278,70 +275,56 @@ const App = (() => {
     });
   }
 
-  async function updateWatchlistPrices() {
-    const now  = Date.now();
-    const list = Watchlist.load();
+  // ── Background watchlist sync ─────────────────────────────
+  // One-by-one sequential queue with a 60s gap between each fetch.
+  // The loop runs forever; active-ticker fetches bypass the queue.
+  let _bgSyncRunning = false;
 
-    // Determine which tickers are actually due for a refresh this cycle
-    const due = list.filter(t => {
-      const ttl  = t === state.ticker ? WL_TTL_ACTIVE : WL_TTL_INACTIVE;
-      const last = wlLastFetch.get(t) || 0;
-      return now - last >= ttl;
-    });
-
-    if (!due.length) return;
-
-    // Show subtle sync indicator in status bar only — no red, no disruption
-    const syncEl = document.getElementById('status-time');
-    if (syncEl) syncEl.textContent = '⟳';
-
-    let anyError = false;
-
-    for (const ticker of due) {
-      try {
-        const candles = await BistAPI.fetchOHLCV(ticker, '1d', '5d');
-        if (candles.length >= 2) {
-          const last = candles[candles.length - 1];
-          const prev = candles[candles.length - 2];
-          const pct  = (last.close - prev.close) / prev.close * 100;
-          wlPriceCache.set(ticker, {
-            price: last.close.toFixed(2),
-            pct:   (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
-            dir:   pct >= 0 ? 'up' : 'down',
-          });
-          wlLastFetch.set(ticker, Date.now());
-          if (ticker === state.ticker) checkPriceCrossings(last.close);
-          renderWatchlist();
+  async function _runBgSync() {
+    if (_bgSyncRunning) return;
+    _bgSyncRunning = true;
+    try {
+      while (true) {
+        if (document.visibilityState !== 'hidden') {
+          const list = Watchlist.load();
+          for (const ticker of list) {
+            await _fetchWatchlistTicker(ticker);
+            await delay(60_000); // 60s between every individual fetch
+          }
+        } else {
+          // Tab hidden — wait a cycle before checking again
+          await delay(60_000);
         }
-      } catch {
-        anyError = true;
-        // Never surface a red error bar for background watchlist failures
       }
-      await delay(800); // gentle gap between tickers
+    } finally {
+      _bgSyncRunning = false;
     }
+  }
 
-    // Restore status-time; if there were soft errors, note it unobtrusively
-    if (syncEl) {
-      updateStatusTime();
-      if (anyError) {
-        const dot = document.getElementById('market-dot');
-        if (dot) {
-          dot.classList.add('pre'); // amber pulse — connectivity hiccup
-          setTimeout(() => {
-            dot.classList.remove('pre');
-            updateMarketStatus();
-          }, 5000);
-        }
+  async function _fetchWatchlistTicker(ticker) {
+    try {
+      const candles = await BistAPI.fetchOHLCV(ticker, '1d', '5d');
+      if (candles.length >= 2) {
+        const last = candles[candles.length - 1];
+        const prev = candles[candles.length - 2];
+        const pct  = (last.close - prev.close) / prev.close * 100;
+        // Only update the tile on success — stale data stays if fetch fails
+        wlPriceCache.set(ticker, {
+          price: last.close.toFixed(2),
+          pct:   (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
+          dir:   pct >= 0 ? 'up' : 'down',
+        });
+        if (ticker === state.ticker) checkPriceCrossings(last.close);
+        renderWatchlist();
       }
+    } catch {
+      // Total silence — log only, never touch the error UI
+      console.debug(`[bgSync] ${ticker} fetch skipped`);
     }
   }
 
   function startWatchlistUpdater() {
-    updateWatchlistPrices();
-    // Poll every 30 s — per-ticker TTLs gate actual network calls
-    setInterval(() => {
-      if (document.visibilityState !== 'hidden') updateWatchlistPrices();
-    }, 30_000);
+    _runBgSync(); // fire-and-forget perpetual loop
   }
 
   function setActiveTicker(ticker) {
