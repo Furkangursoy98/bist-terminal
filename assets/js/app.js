@@ -49,8 +49,15 @@ const App = (() => {
   const SECTOR_INDEX    = { 'Bankacılık': 'XBANK.IS' };
   const tickerSectorMap = new Map();
 
-  // ── Watchlist price cache ────────────────────────────────
-  const wlPriceCache = new Map();
+  // ── Watchlist price cache & fetch-throttle ───────────────
+  const wlPriceCache  = new Map();
+  const wlLastFetch   = new Map();  // ticker → ms timestamp of last successful fetch
+  const WL_TTL_ACTIVE   = 60_000;  // 1 min for the active ticker
+  const WL_TTL_INACTIVE = 300_000; // 5 min for all other watchlist tickers
+
+  // ── Chart-data presence flag ──────────────────────────────
+  // Once charts have data, background failures stay silent.
+  let hasData = false;
 
   // ── R/R state ────────────────────────────────────────────
   const rrState = { entry: null, sl: null, tp: null, isLong: true };
@@ -272,7 +279,25 @@ const App = (() => {
   }
 
   async function updateWatchlistPrices() {
-    for (const ticker of Watchlist.load()) {
+    const now  = Date.now();
+    const list = Watchlist.load();
+
+    // Determine which tickers are actually due for a refresh this cycle
+    const due = list.filter(t => {
+      const ttl  = t === state.ticker ? WL_TTL_ACTIVE : WL_TTL_INACTIVE;
+      const last = wlLastFetch.get(t) || 0;
+      return now - last >= ttl;
+    });
+
+    if (!due.length) return;
+
+    // Show subtle sync indicator in status bar only — no red, no disruption
+    const syncEl = document.getElementById('status-time');
+    if (syncEl) syncEl.textContent = '⟳';
+
+    let anyError = false;
+
+    for (const ticker of due) {
       try {
         const candles = await BistAPI.fetchOHLCV(ticker, '1d', '5d');
         if (candles.length >= 2) {
@@ -284,20 +309,39 @@ const App = (() => {
             pct:   (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
             dir:   pct >= 0 ? 'up' : 'down',
           });
-          // Live price-crossing check for the active ticker
+          wlLastFetch.set(ticker, Date.now());
           if (ticker === state.ticker) checkPriceCrossings(last.close);
           renderWatchlist();
         }
-      } catch { /* silently skip */ }
-      await delay(600);
+      } catch {
+        anyError = true;
+        // Never surface a red error bar for background watchlist failures
+      }
+      await delay(800); // gentle gap between tickers
+    }
+
+    // Restore status-time; if there were soft errors, note it unobtrusively
+    if (syncEl) {
+      updateStatusTime();
+      if (anyError) {
+        const dot = document.getElementById('market-dot');
+        if (dot) {
+          dot.classList.add('pre'); // amber pulse — connectivity hiccup
+          setTimeout(() => {
+            dot.classList.remove('pre');
+            updateMarketStatus();
+          }, 5000);
+        }
+      }
     }
   }
 
   function startWatchlistUpdater() {
     updateWatchlistPrices();
+    // Poll every 30 s — per-ticker TTLs gate actual network calls
     setInterval(() => {
       if (document.visibilityState !== 'hidden') updateWatchlistPrices();
-    }, 60_000);
+    }, 30_000);
   }
 
   function setActiveTicker(ticker) {
@@ -668,18 +712,23 @@ const App = (() => {
 
       // Cache-first fallback: render stale data so charts don't go blank
       if (!cachedMain) {
-        const stale = DataCache.getStale(ticker, interval, range);
+        const stale    = DataCache.getStale(ticker, interval, range);
+        const staleIdx = DataCache.getStale(compIndex, interval, range);
         if (stale) {
-          const staleIdx = DataCache.getStale(compIndex, interval, range);
           _renderAll(stale, staleIdx, compIndex);
           reattachAlertLines();
           FibTool.restore(ticker);
         }
       }
 
-      // User-friendly message + automatic retry in 10 s
+      // Only show the red error bar on a cold load with no data at all.
+      // Once charts are populated, use a quiet status-bar note instead.
       const retryIn = 10;
-      setStatus('error', `Veri kaynakları meşgul — ${retryIn}sn içinde tekrar denenecek…`);
+      if (!hasData) {
+        setStatus('error', `Veri alınamadı — ${retryIn}sn içinde tekrar denenecek…`);
+      } else {
+        setStatus('ready', `⚠ Güncelleme başarısız — ${retryIn}sn içinde tekrar deneniyor`);
+      }
       setTimeout(() => {
         if (state.ticker === ticker) loadData();
       }, retryIn * 1000);
@@ -695,6 +744,7 @@ const App = (() => {
       renderCharts(candles, secondaryCandles, compIndex);
     }
     renderPriceBar(candles);
+    hasData = true;
     // Re-position R/R zones if active
     if (RRTool.isActive()) computeAndDrawRR();
   }

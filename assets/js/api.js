@@ -44,13 +44,15 @@ const BistAPI = (() => {
 
   async function fetchWithFallback(url) {
     let lastError;
-    for (let i = 0; i < PROXIES.length; i++) {
+    // Shuffle on every call so no single proxy absorbs all traffic
+    const proxies = [...PROXIES].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < proxies.length; i++) {
       if (i > 0) await _delay(1000); // 1s pause between proxies to avoid cascading 429s
       try {
-        return await _safeFetch(PROXIES[i](url));
+        return await _safeFetch(proxies[i](url));
       } catch (err) {
         lastError = err;
-        console.warn(`[BistAPI] Proxy ${i + 1}/${PROXIES.length} failed:`, err.message);
+        console.warn(`[BistAPI] Proxy ${i + 1}/${proxies.length} failed:`, err.message);
       }
     }
     throw new Error(`Tüm veri kaynakları yanıt vermedi. Son hata: ${lastError?.message}`);
